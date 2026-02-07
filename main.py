@@ -82,6 +82,15 @@ def get_log(log_id: str):
     return result.data
 
 
+# --------------------
+# Delete Log (Retention / Cleanup)
+# --------------------
+@app.delete("/v1/logs/{log_id}")
+def delete_log(log_id: str):
+    supabase.table("logs").delete().eq("id", log_id).execute()
+    return {"status": "deleted"}
+
+
 """
 Example CURL Requests:
 
