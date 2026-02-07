@@ -91,6 +91,14 @@ def delete_log(log_id: str):
     return {"status": "deleted"}
 
 
+# --------------------
+# Health Check
+# --------------------
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 """
 Example CURL Requests:
 
