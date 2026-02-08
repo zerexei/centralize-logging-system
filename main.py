@@ -1,15 +1,14 @@
 import os
 import json
-import asyncio
 from typing import Optional, Dict, Any, List
 from dotenv import load_dotenv
 
-from fastapi import FastAPI, HTTPException, Query, Depends
-from contextlib import asynccontextmanager
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field
 
-from redis import Redis
 from supabase import create_client, Client
+
+from cache import Cache
 
 from pyrate_limiter import Duration, Limiter, Rate
 from fastapi_limiter.depends import RateLimiter
@@ -21,8 +20,7 @@ supabase: Client = create_client(
     os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY")
 )
 
-redis = Redis(host="redis", port=6379, db=0)
-LOG_QUEUE_KEY = "log_queue"
+# LOG_QUEUE_KEY = "log_queue"
 
 
 # async def process_log_queue_background():
@@ -109,7 +107,12 @@ def create_log(log: LogCreate):
     if not result.data:
         raise HTTPException(status_code=500, detail="Failed to insert log")
 
-    return result.data[0]
+    log = result.data[0]
+    Cache.forget("logs:service::level:")
+    cache_key = f"logs:service:{log.get('service')}:level:{log.get('level')}"
+    Cache.forget(cache_key)
+
+    return log
 
     # return {
     #     "id": "log-123",
@@ -134,8 +137,14 @@ def create_log(log: LogCreate):
 def list_logs(
     service: Optional[str] = None,
     level: Optional[str] = None,
-    limit: int = Query(100, le=500),
+    # limit: int = Query(100, le=500),
 ):
+    cache_key = f"logs:service:{service}:level:{level}"
+
+    if Cache.has(cache_key):
+        return json.loads(Cache.get(cache_key))
+
+    limit = 100  # Fixed limit for simplicity
     query = (
         supabase.table("logs").select("*").order("created_at", desc=True).limit(limit)
     )
@@ -147,6 +156,9 @@ def list_logs(
         query = query.eq("level", level)
 
     result = query.execute()
+
+    Cache.set(cache_key, json.dumps(result.data), expire_seconds=60)
+
     return result.data
 
 
@@ -159,14 +171,21 @@ def list_logs(
     dependencies=[Depends(RateLimiter(limiter=Limiter(Rate(20, Duration.MINUTE))))],
 )
 def get_log(log_id: str):
+    if Cache.has(f"log:{log_id}"):
+        return json.loads(Cache.get(f"log:{log_id}"))
+
     try:
-        result = supabase.table("logs").select("*").eq("id", log_id).single().execute()
+        response = (
+            supabase.table("logs").select("*").eq("id", log_id).single().execute()
+        )
     except Exception as e:
         if e.code == "PGRST116":
             raise HTTPException(status_code=404, detail="Log not found")
         raise
 
-    return result.data
+    Cache.set(f"log:{log_id}", json.dumps(response.data), expire_seconds=60)
+
+    return response.data
 
 
 # --------------------
@@ -174,10 +193,27 @@ def get_log(log_id: str):
 # --------------------
 @app.delete(
     "/v1/logs/{log_id}",
-    dependencies=[Depends(RateLimiter(limiter=Limiter(Rate(2, Duration.MINUTE))))],
+    # dependencies=[Depends(RateLimiter(limiter=Limiter(Rate(2, Duration.MINUTE))))],
 )
 def delete_log(log_id: str):
-    supabase.table("logs").delete().eq("id", log_id).execute()
+    try:
+        response = (
+            supabase.table("logs").select("*").eq("id", log_id).single().execute()
+        )
+    except Exception as e:
+        if e.code == "PGRST116":
+            raise HTTPException(status_code=404, detail="Log not found")
+        raise
+
+    log = response.data
+
+    supabase.table("logs").delete().eq("id", log.get("id")).execute()
+
+    Cache.forget("logs:service::level:")
+    cache_key = f"logs:service:{log.get('service')}:level:{log.get('level')}"
+    Cache.forget(cache_key)
+    Cache.forget(f"log:{log.get('id')}")
+
     return {"status": "deleted"}
 
 
@@ -187,27 +223,21 @@ def delete_log(log_id: str):
 @app.get("/health")
 @skip_limiter
 async def health():
-    # Check Redis connection
-    try:
-        if not redis.ping():
-            raise HTTPException(status_code=503, detail="Redis not reachable")
-    except Exception:
-        raise HTTPException(status_code=503, detail="Redis not reachable")
-
-    return {"status": "ok", "redis": "connected"}
+    # return {"status": "ok", "redis": "connected"}
+    return {"status": "ok"}
 
 
-@app.get("/clear-redis", dependencies=[])
-def clear_redis():
-    try:
-        if not redis.ping():
-            raise HTTPException(status_code=503, detail="Redis not reachable")
-    except Exception:
-        raise HTTPException(status_code=503, detail="Redis not reachable")
+# @app.get("/clear-redis", dependencies=[])
+# def clear_redis():
+#     try:
+#         if not redis.ping():
+#             raise HTTPException(status_code=503, detail="Redis not reachable")
+#     except Exception:
+#         raise HTTPException(status_code=503, detail="Redis not reachable")
 
-    redis.flushdb()
+#     redis.flushdb()
 
-    return {"status": "redis cleared", "redis": "connected"}
+#     return {"status": "redis cleared", "redis": "connected"}
 
 
 """
