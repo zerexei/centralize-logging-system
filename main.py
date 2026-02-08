@@ -4,13 +4,20 @@ from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
 from supabase import create_client, Client
 from dotenv import load_dotenv
+from redis import Redis
 
 load_dotenv()
+
+app = FastAPI(title="Centralized Logging Service")
 
 supabase: Client = create_client(
     os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY")
 )
-app = FastAPI(title="Centralized Logging Service")
+
+redis = Redis(
+    host=os.environ.get("REDIS_HOST", "localhost"),
+    port=int(os.environ.get("REDIS_PORT", 6379)),
+)
 
 
 # --------------------
@@ -96,7 +103,14 @@ def delete_log(log_id: str):
 # --------------------
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    # Check Redis connection
+    try:
+        if not redis.ping():
+            raise HTTPException(status_code=503, detail="Redis not reachable")
+    except Exception:
+        raise HTTPException(status_code=503, detail="Redis not reachable")
+
+    return {"status": "ok", "redis": "connected"}
 
 
 """
