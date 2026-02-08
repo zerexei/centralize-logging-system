@@ -12,9 +12,9 @@ services:
       - redis
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: 300s
+      timeout: 10s
+      retries: 3
 
   redis:
     image: redis:alpine
