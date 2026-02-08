@@ -1,14 +1,14 @@
 import os
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Depends
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from redis import Redis
+from pyrate_limiter import Duration, Limiter, Rate
+from fastapi_limiter.depends import RateLimiter
 
 load_dotenv()
-
-app = FastAPI(title="Centralized Logging Service")
 
 supabase: Client = create_client(
     os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY")
@@ -18,6 +18,8 @@ redis = Redis(
     host=os.environ.get("REDIS_HOST", "localhost"),
     port=int(os.environ.get("REDIS_PORT", 6379)),
 )
+
+app = FastAPI(title="Centralized Logging Service")
 
 
 # --------------------
@@ -40,7 +42,10 @@ class LogResponse(LogCreate):
 # --------------------
 # Create Log
 # --------------------
-@app.post("/v1/logs", response_model=LogResponse)
+@app.post(
+    "/v1/logs",
+    response_model=LogResponse,
+)
 def create_log(log: LogCreate):
     result = supabase.table("logs").insert(log.model_dump()).execute()
 
@@ -49,12 +54,16 @@ def create_log(log: LogCreate):
 
     return result.data[0]
 
-    # --------------------
 
-
+# --------------------
 # Read Logs (Query)
 # --------------------
-@app.get("/v1/logs", response_model=List[LogResponse])
+@app.get(
+    "/v1/logs",
+    response_model=List[LogResponse],
+    dependencies=[Depends(RateLimiter(limiter=Limiter(Rate(5, Duration.MINUTE))))],
+    # dependencies=[Depends(RateLimiter(limiter=Limiter(Rate(100, Duration.MINUTE))))],
+)
 def list_logs(
     service: Optional[str] = None,
     level: Optional[str] = None,
@@ -92,7 +101,10 @@ def get_log(log_id: str):
 # --------------------
 # Delete Log (Retention / Cleanup)
 # --------------------
-@app.delete("/v1/logs/{log_id}")
+@app.delete(
+    "/v1/logs/{log_id}",
+    dependencies=[Depends(RateLimiter(limiter=Limiter(Rate(5, Duration.MINUTE))))],
+)
 def delete_log(log_id: str):
     supabase.table("logs").delete().eq("id", log_id).execute()
     return {"status": "deleted"}
