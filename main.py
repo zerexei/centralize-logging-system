@@ -1,12 +1,16 @@
 import os
+from typing import Optional, Dict, Any, List
+from dotenv import load_dotenv
+
 from fastapi import FastAPI, HTTPException, Query, Depends
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any, List
-from supabase import create_client, Client
-from dotenv import load_dotenv
+
 from redis import Redis
+from supabase import create_client, Client
+
 from pyrate_limiter import Duration, Limiter, Rate
 from fastapi_limiter.depends import RateLimiter
+from fastapi_limiter.decorators import skip_limiter
 
 load_dotenv()
 
@@ -14,10 +18,7 @@ supabase: Client = create_client(
     os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY")
 )
 
-redis = Redis(
-    host=os.environ.get("REDIS_HOST", "localhost"),
-    port=int(os.environ.get("REDIS_PORT", 6379)),
-)
+redis = Redis(host="redis", port=6379, db=0)
 
 app = FastAPI(title="Centralized Logging Service")
 
@@ -45,6 +46,7 @@ class LogResponse(LogCreate):
 @app.post(
     "/v1/logs",
     response_model=LogResponse,
+    dependencies=[Depends(RateLimiter(limiter=Limiter(Rate(5, Duration.MINUTE))))],
 )
 def create_log(log: LogCreate):
     result = supabase.table("logs").insert(log.model_dump()).execute()
@@ -61,8 +63,7 @@ def create_log(log: LogCreate):
 @app.get(
     "/v1/logs",
     response_model=List[LogResponse],
-    dependencies=[Depends(RateLimiter(limiter=Limiter(Rate(5, Duration.MINUTE))))],
-    # dependencies=[Depends(RateLimiter(limiter=Limiter(Rate(100, Duration.MINUTE))))],
+    dependencies=[Depends(RateLimiter(limiter=Limiter(Rate(20, Duration.MINUTE))))],
 )
 def list_logs(
     service: Optional[str] = None,
@@ -86,7 +87,11 @@ def list_logs(
 # --------------------
 # Get Log by ID
 # --------------------
-@app.get("/v1/logs/{log_id}", response_model=LogResponse)
+@app.get(
+    "/v1/logs/{log_id}",
+    response_model=LogResponse,
+    dependencies=[Depends(RateLimiter(limiter=Limiter(Rate(20, Duration.MINUTE))))],
+)
 def get_log(log_id: str):
     try:
         result = supabase.table("logs").select("*").eq("id", log_id).single().execute()
@@ -103,7 +108,7 @@ def get_log(log_id: str):
 # --------------------
 @app.delete(
     "/v1/logs/{log_id}",
-    dependencies=[Depends(RateLimiter(limiter=Limiter(Rate(5, Duration.MINUTE))))],
+    dependencies=[Depends(RateLimiter(limiter=Limiter(Rate(2, Duration.MINUTE))))],
 )
 def delete_log(log_id: str):
     supabase.table("logs").delete().eq("id", log_id).execute()
@@ -114,7 +119,8 @@ def delete_log(log_id: str):
 # Health Check
 # --------------------
 @app.get("/health")
-def health():
+@skip_limiter
+async def health():
     # Check Redis connection
     try:
         if not redis.ping():
@@ -123,6 +129,19 @@ def health():
         raise HTTPException(status_code=503, detail="Redis not reachable")
 
     return {"status": "ok", "redis": "connected"}
+
+
+@app.get("/clear-redis", dependencies=[])
+def clear_redis():
+    try:
+        if not redis.ping():
+            raise HTTPException(status_code=503, detail="Redis not reachable")
+    except Exception:
+        raise HTTPException(status_code=503, detail="Redis not reachable")
+
+    redis.flushdb()
+
+    return {"status": "redis cleared", "redis": "connected"}
 
 
 """
