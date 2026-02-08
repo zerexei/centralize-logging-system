@@ -1,8 +1,11 @@
 import os
+import json
+import asyncio
 from typing import Optional, Dict, Any, List
 from dotenv import load_dotenv
 
 from fastapi import FastAPI, HTTPException, Query, Depends
+from contextlib import asynccontextmanager
 from pydantic import BaseModel, Field
 
 from redis import Redis
@@ -19,6 +22,55 @@ supabase: Client = create_client(
 )
 
 redis = Redis(host="redis", port=6379, db=0)
+LOG_QUEUE_KEY = "log_queue"
+
+
+# async def process_log_queue_background():
+#     while True:
+#         try:
+#             # BLPOP waits until an item is available in the queue
+#             # Timeout is 1 second, so it doesn't block indefinitely
+#             # and allows for graceful shutdown if needed.
+#             item = redis.blpop(LOG_QUEUE_KEY, timeout=1)
+#             if item:
+#                 _queue_name, log_json = item
+#                 try:
+#                     log_data = json.loads(log_json)
+#                     log = LogCreate(**log_data)
+#                     result = supabase.table("logs").insert(log.model_dump()).execute()
+#                     if not result.data:
+#                         print(
+#                             f"Error: Failed to insert log into Supabase: {log.model_dump()}"
+#                         )
+#                     else:
+#                         print(f"Log processed and inserted: {result.data[0].get('id')}")
+#                 except Exception as e:
+#                     print(f"Error processing log from queue: {log_json} - {e}")
+#                     # In a real system, you might push this to a dead-letter queue
+#             else:
+#                 print("Log queue is empty, waiting...")
+#                 pass  # Queue was empty for 1 second, continue looping
+#         except Exception as e:
+#             print(f"Unhandled error in background log processor: {e}")
+
+#         await asyncio.sleep(0.1)
+
+
+# # Define the lifespan context manager to manage background tasks
+# @asynccontextmanager
+# async def lifespan(app: FastAPI):
+#     # Start the background task when the app starts
+#     task = asyncio.create_task(process_log_queue_background())
+#     yield  # Keeps the app alive and running
+#     # Cancel the background task when the app shuts down
+#     task.cancel()
+#     try:
+#         await task  # Wait for the task to finish (handle cancellation)
+#     except asyncio.CancelledError:
+#         pass  # Ignore the cancellation exception
+
+
+# app = FastAPI(title="Centralized Logging Service", lifespan=lifespan)
 
 app = FastAPI(title="Centralized Logging Service")
 
@@ -49,12 +101,26 @@ class LogResponse(LogCreate):
     dependencies=[Depends(RateLimiter(limiter=Limiter(Rate(5, Duration.MINUTE))))],
 )
 def create_log(log: LogCreate):
+    # # Push log to Redis queue
+    # redis.rpush(LOG_QUEUE_KEY, log.model_dump_json())
+
     result = supabase.table("logs").insert(log.model_dump()).execute()
 
     if not result.data:
         raise HTTPException(status_code=500, detail="Failed to insert log")
 
     return result.data[0]
+
+    # return {
+    #     "id": "log-123",
+    #     "created_at": "2022-01-01T00:00:00Z",
+    #     "service": "payment-api",
+    #     "environment": "prod",
+    #     "level": "ERROR",
+    #     "log_message": "Payment gateway timeout",
+    #     "trace_id": "req-123",
+    #     "metadata": {"order_id": 9981, "latency_ms": 2500},
+    # }
 
 
 # --------------------
