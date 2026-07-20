@@ -1,0 +1,18 @@
+flowchart TD
+    Start[API Request Ingress] --> CheckRedis{Is Redis Online?}
+    
+    CheckRedis -- Yes --> ExecLimiter[Execute Redis Rate Limiter & Cache]
+    CheckRedis -- Connection Error --> LogWarning[Log Warning: Redis Offline]
+    
+    LogWarning --> BypassCache[Bypass Cache / Skip Limiter]
+    ExecLimiter --> CheckDB{Is PostgreSQL Available?}
+    BypassCache --> CheckDB
+    
+    CheckDB -- Yes --> ExecPostgres[Execute Query via asyncpg / AsyncSession]
+    CheckDB -- Connection Error / In-Memory Mode --> CheckSQLite{Use SQLite In-Memory Fallback?}
+    
+    CheckSQLite -- Yes --> ExecSQLite[Execute Query via aiosqlite]
+    CheckSQLite -- No --> Raise500[Raise LogInsertionException -> HTTP 500]
+    
+    ExecPostgres --> Return200[Return HTTP 200 Response]
+    ExecSQLite --> Return200

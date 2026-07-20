@@ -1,0 +1,65 @@
+classDiagram
+    class LogModel {
+        +String id (PK)
+        +String service
+        +String environment
+        +String level
+        +Text log_message
+        +String trace_id
+        +JSON metadata
+        +DateTime created_at
+    }
+
+    class LogCreate {
+        +String service
+        +String environment
+        +String level
+        +String log_message
+        +Optional~String~ trace_id
+        +Optional~Dict~ metadata
+    }
+
+    class LogResponse {
+        +String id
+        +String created_at
+    }
+
+    class IssueResponse {
+        +String id
+        +String title
+        +String category
+        +String severity
+        +Float risk_score
+        +String endpoint
+        +String method
+        +String scenario
+        +String observed_behavior
+        +String root_cause
+        +String business_impact
+        +List~String~ recommendations
+        +IssueEvidence evidence
+        +String timestamp
+    }
+
+    class IssueEvidence {
+        +List~String~ log_ids
+        +List~String~ request_ids
+    }
+
+    class RuleDefinition {
+        +String category
+        +List~String~ keywords
+        +String title
+        +String scenario
+        +String observed_behavior
+        +String root_cause
+        +String business_impact
+        +List~String~ recommendations
+        +Float base_impact
+        +Float base_likelihood
+    }
+
+    LogResponse --|> LogCreate
+    IssueResponse *-- IssueEvidence
+    IssueResponse ..> RuleDefinition : Computed from
+    LogModel ..> LogResponse : Serialized to
