@@ -16,11 +16,15 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest>=9.1.1", "pytest-asyncio>=1.4.0", "ruff>=0.15.21", "ty>=0.0.59", "aiosqlite>=0.21.0", "fakeredis>=2.27.0"]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.15.21",
+    "ty>=0.0.59",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["..", "."]
 asyncio_mode = "auto"
 
 [tool.ruff]

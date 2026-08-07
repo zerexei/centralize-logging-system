@@ -23,13 +23,13 @@ services:
 
   api:
     build:
-      context: ./app
+      context: ./server
       dockerfile: Dockerfile
     ports:
       - 3001:3001
     volumes:
-      - ./app:/app
-      - /app/.venv
+      - ./server:/app
+      - /server/.venv
     networks:
       - app
     deploy:
