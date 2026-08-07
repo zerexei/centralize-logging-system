@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Request, Query, HTTPException
 from typing import List, Optional
-from app.src.issues.schemas import IssueResponse, PDFExportRequest
-from app.src.issues.service import IssueService
-from app.src.shared.rate_limiter import rate_limiter
+from app.issues.schemas import IssueResponse, PDFExportRequest
+from app.issues.service import IssueService
+from app.shared.rate_limiter import rate_limiter
 
 router = APIRouter(prefix="/v1", tags=["issues"])
 

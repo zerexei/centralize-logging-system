@@ -1,5 +1,5 @@
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 class IssueEvidence(BaseModel):
     log_ids: List[str] = Field(default_factory=list)
@@ -21,8 +21,7 @@ class IssueResponse(BaseModel):
     evidence: IssueEvidence = Field(..., description="Supporting log and request IDs")
     timestamp: str = Field(..., description="ISO 8601 timestamp of the latest event")
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class PDFExportRequest(BaseModel):
     filters: Optional[Dict[str, Any]] = Field(default=None, description="Filters to apply (id, severity, category, endpoint)")

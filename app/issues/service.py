@@ -6,9 +6,9 @@ from typing import List, Dict, Any, Optional
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 
-from app.src.database import supabase
-from app.src.shared.cache import Cache
-from app.src.issues.schemas import IssueResponse, IssueEvidence
+from app.database import supabase
+from app.shared.cache import Cache
+from app.issues.schemas import IssueResponse, IssueEvidence
 
 # ReportLab imports for generating professional PDFs
 from reportlab.lib.pagesizes import letter

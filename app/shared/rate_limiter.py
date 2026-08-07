@@ -1,6 +1,6 @@
 from functools import wraps
 from fastapi import Request, HTTPException
-from app.src.shared.cache import redis
+from app.shared.cache import redis
 
 
 async def _rate_limiter(request: Request, limit: int, window: int):

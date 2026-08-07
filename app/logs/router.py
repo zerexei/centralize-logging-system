@@ -1,9 +1,9 @@
 from fastapi import APIRouter, HTTPException, Request
 from typing import List, Optional
-from app.src.logs.schemas import LogCreate, LogResponse
-from app.src.logs.service import LogService
-from app.src.shared.rate_limiter import rate_limiter
-from app.src.shared.exceptions import LogInsertionException
+from app.logs.schemas import LogCreate, LogResponse
+from app.logs.service import LogService
+from app.shared.rate_limiter import rate_limiter
+from app.shared.exceptions import LogInsertionException
 
 router = APIRouter(prefix="/v1/logs", tags=["logs"])
 

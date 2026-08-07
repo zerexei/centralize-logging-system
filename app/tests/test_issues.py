@@ -6,10 +6,10 @@ os.environ["SUPABASE_KEY"] = ""
 os.environ["REDIS_HOST"] = "127.0.0.1"
 
 import pytest
-from app.src.database import init_db
-from app.src.issues.service import IssueService
-from app.src.issues.schemas import IssueResponse, PDFExportRequest
-from app.src.main import app
+from app.database import init_db
+from app.issues.service import IssueService
+from app.issues.schemas import IssueResponse, PDFExportRequest
+from app.main import app
 
 import asyncio
 

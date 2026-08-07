@@ -1,23 +1,22 @@
-FROM python:3.12-slim
+# Set base image
+FROM ghcr.io/astral-sh/uv:python3.12-trixie-slim
 
+# Set the working directory
 WORKDIR /app
 
-RUN pip install --no-cache-dir uv
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV UV_PROJECT_ENVIRONMENT=/app/.venv
 
-# Copy dependency files
+# Install dependencies
 COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-dev
 
-# Sync dependencies
-RUN uv sync --no-dev --frozen
+# Copy application
+COPY . .
 
-# Copy source code
-COPY app ./app/
+# Run the app
+ENV PATH="/app/.venv/bin:$PATH"
 
-# Expose port
-EXPOSE 8000
-
-# Ensure Python can see app/src
-ENV PYTHONPATH=/app/app/src
-
-# Run the application
-CMD ["uv", "run", "uvicorn", "app.src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "main:app", "--reload", "--host", "0.0.0.0", "--port", "3001"]

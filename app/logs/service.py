@@ -2,10 +2,10 @@ import json
 import re
 import hashlib
 from datetime import datetime, timezone, timedelta
-from app.src.database import supabase
-from app.src.shared.cache import Cache
-from app.src.logs.schemas import LogCreate
-from app.src.shared.exceptions import LogNotFoundException, LogInsertionException
+from app.database import supabase
+from app.shared.cache import Cache
+from app.logs.schemas import LogCreate
+from app.shared.exceptions import LogNotFoundException, LogInsertionException
 
 class LogService:
     @staticmethod

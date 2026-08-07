@@ -1,11 +1,12 @@
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 import pytest_asyncio
+from app.main import app
 
 
 @pytest_asyncio.fixture()
 async def client():
-    async with AsyncClient(base_url="http://localhost:8000", timeout=10) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         yield client
 
 
