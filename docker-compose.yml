@@ -1,97 +1,62 @@
-services:
-  traefik:
-    image: traefik:v3.6.8
-    command:
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
-    ports:
-      - "80:80"
-      - "8080:8080"
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
-    networks:
-      - app
-
+networks:
   app:
+
+volumes:
+  pgsql-data:
+
+services:
+  client:
     build:
       context: ./client
       dockerfile: Dockerfile
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.app.rule=Host(`app.localhost`)"
-      - "traefik.http.routers.app.entrypoints=web"
-      - "traefik.http.services.app.loadbalancer.server.port=3000"
+    ports:
+      - 3000:3000
     networks:
       - app
-    depends_on:
-      - api
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512m
+        reservations:
+          memory: 256m
 
   api:
     build:
-      context: .
-      dockerfile: app/Dockerfile
+      context: ./app
+      dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - 3001:3001
     volumes:
-      - .:/app
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://sentry_user:sentry_password@postgres:5432/sentry_db
-      - REDIS_HOST=redis
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.logging-api.rule=Host(`api.localhost`)"
-      - "traefik.http.routers.logging-api.entrypoints=web"
-      - "traefik.http.services.logging-api.loadbalancer.server.port=8000"
+      - ./app:/app
+      - /app/.venv
     networks:
       - app
-    depends_on:
-      - redis
-      - postgres
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256m
+        reservations:
+          memory: 128m
 
-  redis:
-    image: redis:8.6.0-alpine3.23
+  pgsql:
+    image: postgres:18-trixie
     ports:
-      - "6379:6379"
+      - ${DATABASE_PORT}:5432
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    volumes:
+      - pgsql-data:/var/lib/postgresql
+    networks:
+      - app
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      retries: 3
-      timeout: 5s
-    networks:
-      - app
-
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: sentry_user
-      POSTGRES_PASSWORD: sentry_password
-      POSTGRES_DB: sentry_db
-    ports:
-      - "5432:5432"
-    volumes:
-      - data-postgres:/var/lib/postgresql/data
-    networks:
-      - app
-
-networks:
-  app:
-    driver: bridge
-
-volumes:
-  data-redis:
-  data-postgres:
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256m
+        reservations:
+          memory: 128m
