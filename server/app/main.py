@@ -1,23 +1,13 @@
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.database import init_db
 from app.issues.router import router as issues_router
 from app.logs.router import router as logs_router
 from app.shared.cache import redis
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    await init_db()
-    yield
-    await redis.aclose()
-
-
 def create_app() -> FastAPI:
-    app = FastAPI(title="AD. Sentry", lifespan=lifespan)
+    app = FastAPI(title="AD. Sentry")
 
     # Add CORS Middleware to support frontend requests
     app.add_middleware(
