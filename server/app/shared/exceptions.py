@@ -1,5 +1,6 @@
 class LogNotFoundException(Exception):
     pass
 
-class LogInsertionException(Exception):
+
+class LogStoreException(Exception):
     pass

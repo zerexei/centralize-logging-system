@@ -1,18 +1,18 @@
+import hashlib
 import json
 import re
-import hashlib
-from datetime import datetime, timezone, timedelta
-from app.database import supabase
-from app.shared.cache import Cache
+from datetime import UTC, datetime, timedelta
+
 from app.logs.schemas import LogCreate
-from app.shared.exceptions import LogNotFoundException, LogInsertionException
+from app.shared.cache import Cache
+
 
 class LogService:
     @staticmethod
     async def create_log(log_data: LogCreate):
         result = await supabase.table("logs").insert(log_data.model_dump()).execute()
         if not result.data:
-            raise LogInsertionException("Failed to insert log")
+            raise LogStoreException("Failed to insert log")
 
         log = result.data[0]
         await Cache.forget("logs:service::level:")
@@ -123,7 +123,7 @@ class LogService:
         response = await supabase.table("logs").select("*").execute()
         logs = response.data or []
         
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         buckets = {}
         for i in range(24):
             dt = now - timedelta(hours=i)
@@ -229,7 +229,7 @@ class LogService:
         response = await supabase.table("logs").select("*").execute()
         logs = response.data or []
         
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         error_counts = {}
         
         for log in logs:
@@ -282,7 +282,7 @@ class LogService:
         uptime_api = max(95.0, round(100.0 - error_rate * 0.5, 2))
         uptime_db = 99.99
         
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         
         reports = [
             {
