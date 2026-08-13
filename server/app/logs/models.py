@@ -2,6 +2,7 @@ import uuid
 from datetime import UTC, datetime
 
 from sqlalchemy import JSON, DateTime, String, Text
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -24,3 +25,10 @@ class LogModel(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
+
+    @classmethod
+    async def create(cls, db: AsyncSession, log: "LogModel") -> "LogModel":
+        db.add(log)
+        await db.commit()
+        await db.refresh(log)
+        return log
