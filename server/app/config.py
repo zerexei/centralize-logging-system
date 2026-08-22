@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     DB_USERNAME: str = ""
     DB_PASSWORD: str = ""
 
+    DB_ECHO_LOG: bool = False
+
     @property
     def database_url(self) -> str:
         return (
