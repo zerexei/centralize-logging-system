@@ -1,1 +1,1 @@
-# Initialize src as a package
+# Initialize app as a package
