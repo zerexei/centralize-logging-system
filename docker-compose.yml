@@ -30,7 +30,7 @@ services:
       - 3001:3001
     volumes:
       - ./server:/app
-      - /server/.venv
+      - /app/.venv
     networks:
       - app
     deploy:
