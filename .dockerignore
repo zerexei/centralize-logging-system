@@ -1,37 +1,48 @@
-# Python
+# Git & Documentation
+.git/
+.github/
+README.md
+
+# Dependencies & Environments
+node_modules/
+.pnpm-store/
+.venv/
+venv/
+env/
+
+# Environment Variables & Secrets (Never bake into images)
+.env
+.env.*
+
+# Build Outputs
+dist/
+dist-ssr/
+build/
+*.egg-info/
+
+# Python Bytecode
 __pycache__/
 *.py[cod]
 *.so
 .Python
 
-# Virtual environments
-.venv/
-venv/
-env/
-
-# Environment variables
-.env
-.env.*
-!.env.example
-
-# IDEs
-.vscode/
-.idea/
-
-# Test & cache
+# Caches & Test Artifacts
+.vite/
+.eslintcache
+*.tsbuildinfo
 .pytest_cache/
 .ruff_cache/
+.ty_cache/
 .coverage
 htmlcov/
-
-# Build artifacts
-build/
-dist/
-*.egg-info/
+coverage/
 
 # Logs
+logs/
 *.log
 
-# OS
+# Editor & OS Files
+.vscode/
+.idea/
 .DS_Store
 Thumbs.db

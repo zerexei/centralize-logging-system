@@ -1,24 +1,25 @@
-# Logs
-/logs
-*.log
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Production & Build Outputs
+dist/
+dist-ssr/
+*.local
+
+# Environment Variables
+.env
+.env.*
+!.env.example
+
+# Frontend Caches & Tooling
+.vite/
+.eslintcache
+*.tsbuildinfo
+coverage/
+
+# Package Manager Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-lerna-debug.log*
-
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?

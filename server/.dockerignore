@@ -1,10 +1,41 @@
-.venv
-__pycache__
-*.pyc
-*.pyo
-*.pyd
-.pytest_cache
-.ruff_cache
-.env
-.git
+# Git & Documentation
+.git/
 .gitignore
+README.md
+
+# Virtual Environments
+.venv/
+venv/
+env/
+
+# Python Bytecode & Compiled Extensions
+__pycache__/
+*.py[cod]
+*.so
+.Python
+
+# Environment Variables & Secrets (Never bake into images)
+.env
+.env.*
+
+# Test, Lint & Type Caches
+.pytest_cache/
+.ruff_cache/
+.ty_cache/
+.coverage
+htmlcov/
+
+# Build Artifacts
+build/
+dist/
+*.egg-info/
+
+# Logs
+logs/
+*.log
+
+# Editor & OS Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
