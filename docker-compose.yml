@@ -33,6 +33,12 @@ services:
       - /app/.venv
     networks:
       - app
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3001/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
     deploy:
       resources:
         limits:
@@ -66,6 +72,7 @@ services:
           memory: 256m
         reservations:
           memory: 128m
+          
   redis:
     image: redis:8.6.0-alpine3.23
     ports:
