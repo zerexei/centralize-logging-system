@@ -97,3 +97,25 @@ services:
           memory: 256m
         reservations:
           memory: 128m
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - client
+      - api
+    networks:
+      - app
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128m
+        reservations:
+          memory: 64m
+
